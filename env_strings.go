@@ -118,17 +118,17 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 	if strings.Contains(ret, "<no value>") {
 		index := strings.Index(ret, "<no value>")
 		preIndex := 0
-		lastIndex := index + len("<no value>")
+		length := index + len("<no value>")
 		if index-20 >= 0 {
 			preIndex = preIndex - 20
 		}
 
 		if index+20 <= len(ret) {
-			lastIndex = lastIndex + 20
+			length = 20
 		}
 
-		errorContent := ret[preIndex:lastIndex]
-		err = fmt.Errorf("some env value did not exist, content: \n%s\n", errorContent)
+		errorContent := ret[preIndex:length]
+		err = fmt.Errorf("some env value did not exist, content: \n...%s...\n", errorContent)
 		return
 	}
 
