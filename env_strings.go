@@ -105,9 +105,10 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 
 	var tpl *template.Template
 
-	if tpl, err = template.New("env_strings").Parse(str); err != nil {
+	if tpl, err = template.New("env_strings").Funcs(newFuncMap()).Parse(str); err != nil {
 		return
 	}
+
 	var buf bytes.Buffer
 	if err = tpl.Execute(&buf, allEnvs); err != nil {
 		return
