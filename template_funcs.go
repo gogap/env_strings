@@ -27,6 +27,7 @@ func newFuncMap() map[string]interface{} {
 	m["utc"] = time.Now().UTC
 	m["pid"] = os.Getpid
 	m["httpGet"] = httpGet
+	m["envIfElse"] = envIfElse
 
 	return m
 }
@@ -57,4 +58,12 @@ func httpGet(url string) (ret string, err error) {
 	ret = string(body)
 
 	return
+}
+
+func envIfElse(envName, equalValue, trueValue, falseValue string) string {
+	if os.Getenv(envName) == equalValue {
+		return trueValue
+	} else {
+		return falseValue
+	}
 }
