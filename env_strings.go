@@ -94,9 +94,11 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 
 	for file, env := range envs {
 		for envKey, envVal := range env {
-			if _, exist := allEnvs[envKey]; exist {
-				err = fmt.Errorf("env key of %s already exist, env file: %s", envKey, file)
-				return
+			if oldValue, exist := allEnvs[envKey]; exist {
+				if oldValue != envVal {
+					err = fmt.Errorf("env key of %s already exist, and value not equal, env file: %s", envKey, file)
+					return
+				}
 			} else {
 				allEnvs[envKey] = envVal
 			}
