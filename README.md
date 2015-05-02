@@ -131,7 +131,23 @@ then the `getv` template func will register to the template FuncMaps, we could w
 
 ```json
 {
-	"name":"{{getv name}}"
+	"name":"{{getv "name"}}"
+}
+```
+
+**result:**
+
+```bash
+{
+	"name":"gogap"
+}
+```
+
+key not exist, and we want get a default value
+
+```json
+{
+	"name":"{{getv "noexistkey" "gogap"}}"
 }
 ```
 

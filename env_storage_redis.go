@@ -76,9 +76,15 @@ func (p *EnvStorageRedis) FuncName() string {
 	return "getv"
 }
 
-func (p *EnvStorageRedis) Get(key string) (val string) {
-	if v, e := p.client.Get(p.prefix + "/" + key); e != nil {
-		return ""
+func (p *EnvStorageRedis) Get(key string, defaultVal ...string) (val string) {
+	if p.prefix != "" {
+		key = p.prefix + "/" + key
+	}
+	if v, e := p.client.Get(key); e != nil {
+		if defaultVal != nil && len(defaultVal) > 0 {
+			val = defaultVal[0]
+		}
+		return
 	} else {
 		val = string(v)
 	}
