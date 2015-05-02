@@ -2,17 +2,53 @@ package env_strings
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"text/template"
 	"time"
 )
 
-func newFuncMap() map[string]interface{} {
-	m := make(map[string]interface{})
+type TemplateFuncs struct {
+	funcMap template.FuncMap
+}
+
+func NewTemplateFuncs() *TemplateFuncs {
+	return &TemplateFuncs{funcMap: basicFuncs()}
+}
+
+func (p *TemplateFuncs) All() template.FuncMap {
+	return p.funcMap
+}
+
+func (p *TemplateFuncs) Register(name string, function interface{}) (err error) {
+	if function == nil {
+		err = errors.New("function could not be nil")
+		return
+	} else if funcType := reflect.TypeOf(function); funcType.Kind() != reflect.Func {
+		err = errors.New("function is not a Func kind")
+		return
+	} else if name == "" {
+		err = errors.New("name could not be empty")
+		return
+	}
+
+	if _, exist := p.funcMap[name]; exist {
+		panic("func name of " + name + " already exist")
+	}
+
+	p.funcMap[name] = function
+
+	return
+}
+
+func basicFuncs() template.FuncMap {
+	m := make(template.FuncMap)
 	m["base"] = path.Base
 	m["abs"] = filepath.Abs
 	m["dir"] = filepath.Dir

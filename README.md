@@ -93,3 +93,52 @@ func main() {
 ```bash
 {127.0.0.1 123456 1000}
 ```
+
+
+### Advance
+
+use redis to storage conf
+
+we should set the config file of `/etc/env_strings.conf` (default path) before use, or set config file path by system ENV with your '~/.bash_profile' or `~/.zshrc`, the key is `ENV_STRINGS_CONF`, just edit like this: `export ENV_STRINGS_CONF=/etc/env_strings.conf`
+
+
+`/etc/env_strings.conf`
+
+```json
+{
+    "storages": [{
+        "engine": "redis",
+        "options": {
+            "db": 1,
+            "password": "",
+            "pool_size": 10,
+            "address": "localhost:6379"
+        }
+    }]
+}
+```
+
+set data to redis
+
+```bash
+> redis-cli -n 1 set name gogap
+OK
+> redis-cli -n 1 get name
+gogap
+```
+
+then the `getv` template func will register to the template FuncMaps, we could write template like this:
+
+```json
+{
+	"name":"{{getv name}}"
+}
+```
+
+**result:**
+
+```bash
+{
+	"name":"gogap"
+}
+```
