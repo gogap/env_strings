@@ -6,6 +6,7 @@ import (
 
 type EnvStorageRedis struct {
 	client redis.Client
+	prefix string
 }
 
 func NewEnvStorageRedis(options map[string]interface{}) EnvStorage {
@@ -48,6 +49,16 @@ func NewEnvStorageRedis(options map[string]interface{}) EnvStorage {
 		poolSize = intPoolSize
 	}
 
+	var prefix string
+
+	if v, exist := options["prefix"]; !exist {
+		prefix = ""
+	} else if strPrefix, ok := v.(string); !ok {
+		panic("option of prefix must be string")
+	} else {
+		prefix = strPrefix
+	}
+
 	client := redis.Client{
 		Addr:        addr,
 		Db:          int(db),
@@ -56,6 +67,7 @@ func NewEnvStorageRedis(options map[string]interface{}) EnvStorage {
 	}
 
 	storage.client = client
+	storage.prefix = prefix
 
 	return storage
 }
@@ -65,7 +77,7 @@ func (p *EnvStorageRedis) FuncName() string {
 }
 
 func (p *EnvStorageRedis) Get(key string) (val string) {
-	if v, e := p.client.Get(key); e != nil {
+	if v, e := p.client.Get(p.prefix + "/" + key); e != nil {
 		return ""
 	} else {
 		val = string(v)
