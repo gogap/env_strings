@@ -59,7 +59,7 @@ func EnvStringsConfig(fileName string) option {
 
 func NewEnvStrings(envName string, envExt string, opts ...option) *EnvStrings {
 	if envName == "" {
-		panic("env_strings: env name could not be nil")
+		panic("env_strings: env name could not be empty")
 	}
 
 	envStrings := &EnvStrings{
@@ -159,7 +159,6 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 		for _, file := range files {
 			var str []byte
 			if str, err = ioutil.ReadFile(file); err != nil {
-
 				return
 			}
 
@@ -190,7 +189,7 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 
 	var tpl *template.Template
 
-	if tpl, err = template.New("env_strings").Funcs(p.tmplFuncs.All()).Parse(str); err != nil {
+	if tpl, err = template.New("tmpl:" + p.envName).Funcs(p.tmplFuncs.GetFuncMaps(p.envName)).Parse(str); err != nil {
 		return
 	}
 
@@ -216,6 +215,10 @@ func Execute(str string) (ret string, err error) {
 
 func (p *EnvStrings) RegisterFunc(name string, function interface{}) (err error) {
 	return p.tmplFuncs.Register(name, function)
+}
+
+func (p *EnvStrings) FuncUsageStatic() map[string][]FuncStaticItem {
+	return funcStatics
 }
 
 func (p *EnvStrings) loadConfig(fileName string) (err error) {
