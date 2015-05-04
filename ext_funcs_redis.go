@@ -1,16 +1,19 @@
 package env_strings
 
 import (
+	"errors"
+	"text/template"
+
 	"github.com/hoisie/redis"
 )
 
-type EnvStorageRedis struct {
+type ExtFuncsRedis struct {
 	client redis.Client
 	prefix string
 }
 
-func NewEnvStorageRedis(options map[string]interface{}) EnvStorage {
-	storage := new(EnvStorageRedis)
+func NewExtFuncsRedis(options map[string]interface{}) ExtFuncs {
+	storage := new(ExtFuncsRedis)
 
 	var addr string
 
@@ -72,21 +75,78 @@ func NewEnvStorageRedis(options map[string]interface{}) EnvStorage {
 	return storage
 }
 
-func (p *EnvStorageRedis) FuncName() string {
-	return "getv"
+func (p *ExtFuncsRedis) GetFuncs() template.FuncMap {
+	funcs := make(template.FuncMap)
+
+	funcs["redis_get"] = p.Get
+	funcs["redis_hget"] = p.HGet
+
+	return funcs
 }
 
-func (p *EnvStorageRedis) Get(key string, defaultVal ...string) (val string) {
+func (p *ExtFuncsRedis) Get(args ...interface{}) (ret interface{}, err error) {
+	if len(args) < 1 {
+		err = errors.New("args need 1 or 2 args")
+		return
+	}
+
+	key := args[0].(string)
+
+	if key == "" {
+		err = errors.New("key could not be empty")
+		return
+	}
+
 	if p.prefix != "" {
 		key = p.prefix + "/" + key
 	}
+
 	if v, e := p.client.Get(key); e != nil {
-		if defaultVal != nil && len(defaultVal) > 0 {
-			val = defaultVal[0]
+		if len(args) >= 2 {
+			ret = args[1]
+		} else {
+			err = e
 		}
 		return
 	} else {
-		val = string(v)
+		ret = string(v)
+	}
+	return
+}
+
+func (p *ExtFuncsRedis) HGet(args ...interface{}) (ret interface{}, err error) {
+	if len(args) < 2 {
+		err = errors.New("args need 2 or 3 args")
+		return
+	}
+
+	key := args[0].(string)
+
+	if key == "" {
+		err = errors.New("key could not be empty")
+		return
+	}
+
+	if p.prefix != "" {
+		key = p.prefix + "/" + key
+	}
+
+	field := args[1].(string)
+
+	if field == "" {
+		err = errors.New("field could not be empty")
+		return
+	}
+
+	if v, e := p.client.Hget(key, field); e != nil {
+		if len(args) >= 3 {
+			ret = args[2]
+		} else {
+			err = e
+		}
+		return
+	} else {
+		ret = string(v)
 	}
 	return
 }

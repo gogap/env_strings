@@ -75,8 +75,9 @@ func NewEnvStrings(envName string, envExt string, opts ...option) *EnvStrings {
 		}
 	}
 
-	if envStrings.configFile == "" {
-		envStrings.configFile = os.Getenv(ENV_STRINGS_CONFIG_KEY)
+	envStringsConf := os.Getenv(ENV_STRINGS_CONFIG_KEY)
+	if envStringsConf != "" {
+		envStrings.configFile = envStringsConf
 	}
 
 	if envStrings.configFile != "" {
@@ -93,9 +94,17 @@ func NewEnvStrings(envName string, envExt string, opts ...option) *EnvStrings {
 				switch storageConf.Engine {
 				case STORAGE_REDIS:
 					{
-						redisStorage := NewEnvStorageRedis(storageConf.Options)
-						if err := envStrings.RegisterFunc(redisStorage.FuncName(), redisStorage.Get); err != nil {
-							panic(err)
+						extFucnRedis := NewExtFuncsRedis(storageConf.Options)
+						redisFuncs := extFucnRedis.GetFuncs()
+
+						if redisFuncs == nil {
+							panic("ext funcs of redis is nil")
+						}
+
+						for funcName, fn := range redisFuncs {
+							if err := envStrings.RegisterFunc(funcName, fn); err != nil {
+								panic(err)
+							}
 						}
 					}
 				default:
