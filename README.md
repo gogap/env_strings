@@ -97,7 +97,7 @@ func main() {
 
 ### Advance
 
-use redis to storage conf
+#### use redis to storage conf
 
 we should set the config file of `/etc/env_strings.conf` (default path) before use, or set config file path by system ENV with your '~/.bash_profile' or `~/.zshrc`, the key is `ENV_STRINGS_CONF`, just edit like this: `export ENV_STRINGS_CONF=/etc/env_strings.conf`
 
@@ -118,20 +118,27 @@ we should set the config file of `/etc/env_strings.conf` (default path) before u
 }
 ```
 
-set data to redis
+#### set data to redis
 
 ```bash
 > redis-cli -n 1 set name gogap
 OK
 > redis-cli -n 1 get name
 gogap
+> redis-cli -n 1 set key field value
+OK
+> redis-cli -n 1 hget key field
+value
 ```
 
-then the `getv` template func will register to the template FuncMaps, we could write template like this:
+
+#### redis command: redis_get
+
+**config template:**
 
 ```json
 {
-	"name":"{{getv "name"}}"
+	"name":"{{redis_get "name"}}"
 }
 ```
 
@@ -143,11 +150,46 @@ then the `getv` template func will register to the template FuncMaps, we could w
 }
 ```
 
-key not exist, and we want get a default value
+if key not exist, and we want get a default value
 
 ```json
 {
-	"name":"{{getv "noexistkey" "gogap"}}"
+	"name":"{{redis_get "noexistkey" "gogap"}}"
+}
+```
+
+**result:**
+
+```bash
+{
+	"name":"gogap"
+}
+```
+
+
+#### redis command: redis_hget
+
+**config template:**
+
+```json
+{
+	"name":"{{redis_hget "key" "field"}}"
+}
+```
+
+**result:**
+
+```bash
+{
+	"name":"value"
+}
+```
+
+if key or filed not exist, and we want get a default value
+
+```json
+{
+	"name":"{{redis_hget "key2" "filed" "gogap"}}"
 }
 ```
 
