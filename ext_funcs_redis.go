@@ -2,6 +2,7 @@ package env_strings
 
 import (
 	"errors"
+	"fmt"
 	"text/template"
 
 	"github.com/hoisie/redis"
@@ -134,17 +135,18 @@ func (p *ExtFuncsRedis) HGet(args ...interface{}) (ret interface{}, err error) {
 	field := args[1].(string)
 
 	if field == "" {
-		err = errors.New("field could not be empty")
+		err = fmt.Errorf("field could not be empty, key: %s", key)
 		return
 	}
 
 	if v, e := p.client.Hget(key, field); e != nil {
 		if len(args) >= 3 {
 			ret = args[2]
+			return
 		} else {
-			err = e
+			err = fmt.Errorf("%s, key: %s, field: %s", e.Error(), key, field)
+			return
 		}
-		return
 	} else {
 		ret = string(v)
 	}
