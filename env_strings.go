@@ -119,6 +119,10 @@ func NewEnvStrings(envName string, envExt string, opts ...option) *EnvStrings {
 }
 
 func (p *EnvStrings) Execute(str string) (ret string, err error) {
+	return p.ExecuteWith(str, nil)
+}
+
+func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (ret string, err error) {
 	strConfigFiles := os.Getenv(p.envName)
 
 	configFiles := strings.Split(strConfigFiles, ";")
@@ -196,6 +200,19 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 		}
 	}
 
+	if envValues != nil {
+		for envKey, envVal := range envValues {
+			if oldValue, exist := allEnvs[envKey]; exist {
+				if oldValue != envVal {
+					err = fmt.Errorf("env key of %s already exist, and value not equal", envKey)
+					return
+				}
+			} else {
+				allEnvs[envKey] = envVal
+			}
+		}
+	}
+
 	var tpl *template.Template
 
 	if tpl, err = template.New("tmpl:" + p.envName).Funcs(p.tmplFuncs.GetFuncMaps(p.envName)).Parse(str); err != nil {
@@ -220,6 +237,11 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 func Execute(str string) (ret string, err error) {
 	envStrings := NewEnvStrings(ENV_STRINGS_KEY, ENV_STRINGS_EXT)
 	return envStrings.Execute(str)
+}
+
+func ExecuteWith(str string, envValues map[string]interface{}) (ret string, err error) {
+	envStrings := NewEnvStrings(ENV_STRINGS_KEY, ENV_STRINGS_EXT)
+	return envStrings.ExecuteWith(str, envValues)
 }
 
 func (p *EnvStrings) RegisterFunc(name string, function interface{}) (err error) {
