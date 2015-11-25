@@ -215,7 +215,7 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 
 	var tpl *template.Template
 
-	if tpl, err = template.New("tmpl:" + p.envName).Funcs(p.tmplFuncs.GetFuncMaps(p.envName)).Parse(str); err != nil {
+	if tpl, err = template.New("tmpl:" + p.envName).Funcs(p.tmplFuncs.GetFuncMaps(p.envName)).Option("missingkey=error").Parse(str); err != nil {
 		return
 	}
 
@@ -225,11 +225,6 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 	}
 
 	ret = buf.String()
-
-	if strings.Contains(ret, "<no value>") {
-		err = fmt.Errorf("some env value did not exist, content: \n%s\n", ret)
-		return
-	}
 
 	return
 }
