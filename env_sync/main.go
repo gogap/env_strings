@@ -36,7 +36,7 @@ func main() {
 	config, err := getRedisConfig()
 	if err != nil {
 		log.Println(err)
-		return
+		os.Exit(1)
 	}
 	client = redis.Client{
 		Addr:        config.address,
@@ -47,11 +47,12 @@ func main() {
 	data, err := prepare()
 	if err != nil {
 		log.Println(err)
-		return
+		os.Exit(1)
 	}
 	err = set(data)
 	if err != nil {
 		log.Println(err)
+		os.Exit(1)
 	}
 	return
 }
