@@ -199,25 +199,21 @@ func set(data []syncData) (err error) {
 		if v.field == "" {
 			origin, e := client.Get(v.key)
 			if e == nil && string(origin) == v.value {
-				fmt.Println("ingore", v.key, v.value)
 				continue
 			}
 			err = client.Set(v.key, []byte(v.value))
 			if err != nil {
 				return
 			}
-			fmt.Printf("set %s %s\n", v.key, v.value)
 		} else {
 			origin, e := client.Hget(v.key, v.field)
 			if e == nil && string(origin) == v.value {
-				// fmt.Println("ingore", v.key, v.field, v.value)
 				continue
 			}
 			_, err = client.Hset(v.key, v.field, []byte(v.value))
 			if err != nil {
 				return
 			}
-			// fmt.Printf("hset %s %s %s\n", v.key, v.field, v.value)
 		}
 	}
 	return
