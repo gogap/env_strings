@@ -3,7 +3,6 @@ package env_strings
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -123,93 +122,28 @@ func (p *EnvStrings) Execute(str string) (ret string, err error) {
 }
 
 func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (ret string, err error) {
-	strConfigFiles := os.Getenv(p.envName)
+	strEnvFiles := os.Getenv(p.envName)
 
-	configFiles := strings.Split(strConfigFiles, ";")
+	envFiles := strings.Split(strEnvFiles, ";")
 
-	files := []string{}
-
-	if len(configFiles) > 0 {
-		for _, confFile := range configFiles {
-			confFile = strings.TrimSpace(confFile)
-			if confFile == "" {
-				continue
-			}
-
-			var fi os.FileInfo
-			if fi, err = os.Stat(confFile); err != nil {
-				return
-			}
-
-			if fi.IsDir() {
-				var dir *os.File
-				if dir, err = os.Open(confFile); err != nil {
-					return
-				}
-
-				var names []string
-				if names, err = dir.Readdirnames(-1); err != nil {
-					return
-				}
-
-				for _, name := range names {
-					if ext := filepath.Ext(name); ext == p.envExt {
-						filePath := strings.TrimRight(confFile, "/")
-						files = append(files, filePath+"/"+name)
-					}
-				}
-			} else {
-				if ext := filepath.Ext(confFile); ext == p.envExt {
-					files = append(files, confFile)
-				}
-			}
-		}
+	if len(envFiles) == 1 && len(envFiles[0]) == 0 {
+		envFiles = nil
 	}
 
-	envs := map[string]map[string]interface{}{}
-
-	if len(files) > 0 {
-		for _, file := range files {
-			var str []byte
-			if str, err = ioutil.ReadFile(file); err != nil {
-				return
-			}
-
-			env := map[string]interface{}{}
-			if err = json.Unmarshal(str, &env); err != nil {
-				return
-			}
-
-			envs[file] = env
-		}
-
+	if envValues == nil {
+		envValues = make(map[string]interface{})
 	}
 
-	allEnvs := map[string]interface{}{}
+	for _, envFile := range envFiles {
 
-	for file, env := range envs {
-		for envKey, envVal := range env {
-			if oldValue, exist := allEnvs[envKey]; exist {
-				if oldValue != envVal {
-					err = fmt.Errorf("env key of %s already exist, and value not equal, env file: %s", envKey, file)
-					return
-				}
-			} else {
-				allEnvs[envKey] = envVal
-			}
-		}
-	}
+		prefix := filepath.Base(envFile)
 
-	if envValues != nil {
-		for envKey, envVal := range envValues {
-			if oldValue, exist := allEnvs[envKey]; exist {
-				if oldValue != envVal {
-					err = fmt.Errorf("env key of %s already exist, and value not equal", envKey)
-					return
-				}
-			} else {
-				allEnvs[envKey] = envVal
-			}
+		prefix = filepath.Dir(prefix)
+
+		err = p.loadEnv(prefix, []string{envFile}, envValues)
+
+		if err != nil {
+			return
 		}
 	}
 
@@ -220,7 +154,7 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 	}
 
 	var buf bytes.Buffer
-	if err = tpl.Execute(&buf, allEnvs); err != nil {
+	if err = tpl.Execute(&buf, envValues); err != nil {
 		return
 	}
 
@@ -245,6 +179,104 @@ func (p *EnvStrings) RegisterFunc(name string, function interface{}) (err error)
 
 func (p *EnvStrings) FuncUsageStatic() map[string][]FuncStaticItem {
 	return funcStatics
+}
+
+func (p *EnvStrings) loadEnv(prefix string, files []string, envs map[string]interface{}) (err error) {
+
+	for _, path := range files {
+
+		var fi os.FileInfo
+		fi, err = os.Stat(path)
+		if err != nil {
+			return
+		}
+
+		if strings.HasPrefix(fi.Name(), ".") {
+			continue
+		}
+
+		if fi.IsDir() {
+
+			baseName := filepath.Base(path)
+
+			if strings.HasPrefix(baseName, ".") {
+				continue
+			}
+
+			var fis []os.FileInfo
+			fis, err = ioutil.ReadDir(path)
+
+			if err != nil {
+				return
+			}
+
+			var nextfiles []string
+
+			for _, f := range fis {
+				nextfiles = append(nextfiles, filepath.Join(path, f.Name()))
+			}
+
+			var nextENVs map[string]interface{}
+
+			if envs == nil {
+				envs = make(map[string]interface{})
+			}
+
+			preEnvs, exist := envs[baseName]
+			if !exist {
+				nextENVs = make(map[string]interface{})
+				envs[baseName] = nextENVs
+			} else {
+				nextENVs = preEnvs.(map[string]interface{})
+			}
+
+			err = p.loadEnv(prefix, nextfiles, nextENVs)
+			if err != nil {
+				return
+			}
+
+			continue
+		}
+
+		baseName := strings.TrimSuffix(fi.Name(), p.envExt)
+
+		fileEnvs, err := p.loadEnvFile(path)
+
+		if err != nil {
+			return err
+		}
+
+		if envs == nil {
+			envs = make(map[string]interface{})
+		}
+
+		envs[baseName] = fileEnvs
+	}
+
+	return
+}
+
+func (p *EnvStrings) loadEnvFile(filename string) (ret map[string]interface{}, err error) {
+
+	if ext := filepath.Ext(filename); ext == p.envExt {
+
+		var data []byte
+		data, err = ioutil.ReadFile(filename)
+		if err != nil {
+			return
+		}
+
+		r := make(map[string]interface{})
+
+		err = json.Unmarshal(data, &r)
+		if err != nil {
+			return
+		}
+
+		ret = r
+	}
+
+	return
 }
 
 func (p *EnvStrings) loadConfig(fileName string) (err error) {
