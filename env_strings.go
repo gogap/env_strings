@@ -135,22 +135,27 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 		envValues = make(map[string]interface{})
 	}
 
+	debug := false
+	if os.Getenv("ENV_STRING_DEBUG") == "true" {
+		debug = true
+	}
+
 	for _, envFile := range envFiles {
 
 		prefix := filepath.Base(envFile)
 
 		prefix = filepath.Dir(prefix)
 
-		err = p.loadEnv(prefix, []string{envFile}, envValues)
+		err = p.loadEnv(debug, prefix, []string{envFile}, envValues)
 
 		if err != nil {
 			return
 		}
 	}
 
-	if os.Getenv("ENV_STRING_DEBUG") == "true" {
+	if debug {
 		debugData, _ := json.MarshalIndent(envValues, "", "    ")
-		fmt.Println(string(debugData))
+		fmt.Printf("[ENV_STRINGS] final envs:\n%s\n", string(debugData))
 	}
 
 	var tpl *template.Template
@@ -187,8 +192,7 @@ func (p *EnvStrings) FuncUsageStatic() map[string][]FuncStaticItem {
 	return funcStatics
 }
 
-func (p *EnvStrings) loadEnv(prefix string, files []string, envs map[string]interface{}) (err error) {
-
+func (p *EnvStrings) loadEnv(debug bool, prefix string, files []string, envs map[string]interface{}) (err error) {
 	for _, path := range files {
 
 		var fi os.FileInfo
@@ -236,7 +240,7 @@ func (p *EnvStrings) loadEnv(prefix string, files []string, envs map[string]inte
 				nextENVs = preEnvs.(map[string]interface{})
 			}
 
-			err = p.loadEnv(prefix, nextfiles, nextENVs)
+			err = p.loadEnv(debug, prefix, nextfiles, nextENVs)
 			if err != nil {
 				return
 			}
@@ -251,6 +255,11 @@ func (p *EnvStrings) loadEnv(prefix string, files []string, envs map[string]inte
 
 		if err != nil {
 			return err
+		}
+
+		if debug {
+			debugData, _ := json.MarshalIndent(fileEnvs, "", "    ")
+			fmt.Printf("[ENV_STRINGS] env file: %s\n%s\n", path, string(debugData))
 		}
 
 		if envs == nil {
