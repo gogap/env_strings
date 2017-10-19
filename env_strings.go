@@ -127,10 +127,6 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 
 	envFiles := strings.Split(strEnvFiles, ";")
 
-	if len(envFiles) == 1 && len(envFiles[0]) == 0 {
-		envFiles = nil
-	}
-
 	if envValues == nil {
 		envValues = make(map[string]interface{})
 	}
@@ -141,6 +137,10 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 	}
 
 	for _, envFile := range envFiles {
+
+		if len(envFile) == 0 {
+			continue
+		}
 
 		prefix := filepath.Base(envFile)
 
