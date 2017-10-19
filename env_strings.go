@@ -171,6 +171,10 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 
 	ret = buf.String()
 
+	if debug {
+		fmt.Printf("[ENV_STRINGS] final rendered:\n%s\n", ret)
+	}
+
 	return
 }
 
