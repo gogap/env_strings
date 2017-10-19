@@ -3,6 +3,7 @@ package env_strings
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -147,6 +148,11 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 		}
 	}
 
+	if os.Getenv("ENV_STRING_DEBUG") == "true" {
+		debugData, _ := json.MarshalIndent(envValues, "", "    ")
+		fmt.Println(string(debugData))
+	}
+
 	var tpl *template.Template
 
 	if tpl, err = template.New("tmpl:" + p.envName).Funcs(p.tmplFuncs.GetFuncMaps(p.envName)).Option("missingkey=error").Parse(str); err != nil {
@@ -240,7 +246,8 @@ func (p *EnvStrings) loadEnv(prefix string, files []string, envs map[string]inte
 
 		baseName := strings.TrimSuffix(fi.Name(), p.envExt)
 
-		fileEnvs, err := p.loadEnvFile(path)
+		var fileEnvs map[string]interface{}
+		fileEnvs, err = p.loadEnvFile(path)
 
 		if err != nil {
 			return err
@@ -250,8 +257,44 @@ func (p *EnvStrings) loadEnv(prefix string, files []string, envs map[string]inte
 			envs = make(map[string]interface{})
 		}
 
-		envs[baseName] = fileEnvs
+		existEnvs, exist := envs[baseName]
+
+		if exist {
+			err = mergeMaps(existEnvs, fileEnvs)
+			if err != nil {
+				err = fmt.Errorf("merge same env key's values failure, file: %s, error: %s", path, err.Error())
+				return
+			}
+
+		} else {
+			envs[baseName] = fileEnvs
+		}
 	}
+
+	return
+}
+
+func mergeMaps(vA, vB interface{}) (err error) {
+	vAMap, okA := vA.(map[string]interface{})
+	vBMap, okB := vB.(map[string]interface{})
+
+	if okA && okB {
+		for k, valB := range vBMap {
+			valA, exist := vAMap[k]
+			if !exist {
+				vAMap[k] = valB
+			} else {
+				err = mergeMaps(valA, valB)
+				if err != nil {
+					return
+				}
+			}
+		}
+
+		return
+	}
+
+	err = fmt.Errorf("could not merge different struct values")
 
 	return
 }
