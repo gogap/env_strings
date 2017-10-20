@@ -132,7 +132,7 @@ func (p *EnvStrings) ExecuteWith(str string, envValues map[string]interface{}) (
 	}
 
 	debug := false
-	if os.Getenv("ENV_STRING_DEBUG") == "true" {
+	if os.Getenv("ENV_STRINGS_DEBUG") == "true" {
 		debug = true
 	}
 
